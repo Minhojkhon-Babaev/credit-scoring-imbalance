@@ -134,7 +134,6 @@ def run_experiment(
     cv: int,
     ctgan_epochs: int,
     giveme_rows: int,
-    home_rows: int,
     seed: int,
     test_size: float,
     tag: str,
@@ -153,7 +152,7 @@ def run_experiment(
 
     for dataset_name in datasets:
         log(f"\n=== Датасет {dataset_name} ===")
-        X, y = load_dataset(dataset_name, giveme_rows, home_rows, seed)
+        X, y = load_dataset(dataset_name, giveme_rows, seed)
         y_np = y.to_numpy(dtype=int)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y_np, test_size=test_size, stratify=y_np, random_state=seed
@@ -168,7 +167,6 @@ def run_experiment(
             "n_train": int(len(X_train)),
             "n_test": int(len(X_test)),
             "giveme_rows": giveme_rows if dataset_name == "giveme" else "",
-            "home_rows": home_rows if dataset_name == "home" else "",
         }
         log(
             f"строк={profile['n_rows']}, признаков={profile['n_features']}, "

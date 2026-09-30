@@ -52,29 +52,6 @@ def load_giveme(max_rows: int | None, seed: int) -> tuple[pd.DataFrame, pd.Serie
     return X.reset_index(drop=True), y.reset_index(drop=True)
 
 
-def load_home_credit(max_rows: int | None, seed: int) -> tuple[pd.DataFrame, pd.Series]:
-    """Home Credit Default Risk. Ожидает data/home_credit/application_train.csv."""
-    path = DATA_DIR / "home_credit" / "application_train.csv"
-    if not path.exists():
-        raise FileNotFoundError(
-            "Нет data/home_credit/application_train.csv. "
-            "Скачайте application_train.csv соревнования Home Credit Default Risk "
-            "и положите файл по этому пути, затем запустите с --datasets home."
-        )
-    df = pd.read_csv(path)
-    y = df["TARGET"].astype(int)
-    drop = ["TARGET", "SK_ID_CURR"]
-    X = df.drop(columns=[c for c in drop if c in df.columns])
-    missing_rate = X.isna().mean()
-    X = X.loc[:, missing_rate <= 0.4]
-    if max_rows and 0 < max_rows < len(X):
-        X, _, y, _ = train_test_split(
-            X, y, train_size=max_rows, stratify=y, random_state=seed
-        )
-    y.name = "default"
-    return X.reset_index(drop=True), y.reset_index(drop=True)
-
-
 def recover_numeric(X: pd.DataFrame) -> pd.DataFrame:
     """Возвращает числовой тип колонкам, которые OpenML отдал как категории из цифр."""
     recovered = X.copy()
@@ -87,13 +64,11 @@ def recover_numeric(X: pd.DataFrame) -> pd.DataFrame:
     return recovered
 
 
-def load_dataset(name: str, giveme_rows: int, home_rows: int, seed: int) -> tuple[pd.DataFrame, pd.Series]:
+def load_dataset(name: str, giveme_rows: int, seed: int) -> tuple[pd.DataFrame, pd.Series]:
     if name == "german":
         X, y = load_german()
     elif name == "giveme":
         X, y = load_giveme(giveme_rows or None, seed)
-    elif name == "home":
-        X, y = load_home_credit(home_rows or None, seed)
     else:
         raise ValueError(f"Неизвестный датасет: {name}")
     return recover_numeric(X), y

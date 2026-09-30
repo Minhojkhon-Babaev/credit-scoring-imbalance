@@ -17,7 +17,7 @@ from credit_scoring.report import write_report
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Кредитный скоринг при дисбалансе классов")
-    parser.add_argument("--datasets", nargs="+", default=["german", "giveme"], choices=["german", "giveme", "home"])
+    parser.add_argument("--datasets", nargs="+", default=["german", "giveme"], choices=["german", "giveme"])
     parser.add_argument("--models", nargs="+", default=list(ALL_MODELS), choices=list(ALL_MODELS))
     parser.add_argument("--methods", nargs="+", default=list(ALL_METHODS), choices=list(ALL_METHODS))
     parser.add_argument("--trials", type=int, default=12, help="Число trials Optuna на каждую пару модель×метод")
@@ -29,7 +29,6 @@ def parse_args() -> argparse.Namespace:
         default=8000,
         help="Стратифицированная подвыборка Give Me Some Credit. 0 — все 150000 строк",
     )
-    parser.add_argument("--home-rows", type=int, default=8000, help="Подвыборка Home Credit. 0 — весь файл")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--tag", default="main", help="Префикс файлов результата. smoke не затирает основной прогон")
@@ -47,7 +46,6 @@ def main() -> None:
         cv=args.cv,
         ctgan_epochs=args.ctgan_epochs,
         giveme_rows=args.giveme_rows,
-        home_rows=args.home_rows,
         seed=args.seed,
         test_size=args.test_size,
         tag=args.tag,
