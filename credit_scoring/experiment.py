@@ -20,11 +20,8 @@ from credit_scoring.resample import (
     RESAMPLE_METHODS,
     _distance_resample,
     ctgan_resample,
-    gmm_resample,
-    noise_resample,
     smote_resample,
 )
-from credit_scoring.synth_quality import quality_row
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -43,8 +40,6 @@ def apply_resample(
     level: str | None,
     prep: FoldPreprocessor,
     seed: int,
-    noise_scale: float,
-    gmm_components: int,
     pool: np.ndarray | None,
 ) -> tuple[np.ndarray, np.ndarray]:
     if method in {"raw", "class_weight"} or level is None:
@@ -52,21 +47,13 @@ def apply_resample(
     rng = np.random.default_rng(seed)
     if method == "smote":
         return smote_resample(X, y, level, prep.cat_cardinalities, prep.n_num, seed)
-    if method in {"borderline_smote", "adasyn"}:
-        return _distance_resample(method, X, y, level, prep.cat_cardinalities, prep.n_num, seed)
-    if method == "noise":
-        return noise_resample(X, y, level, prep.n_num, noise_scale, rng, prep.cat_cardinalities)
-    if method == "gmm":
-        return gmm_resample(X, y, level, prep.n_num, gmm_components, rng, prep.cat_cardinalities)
+    if method == "adasyn":
+        return _distance_resample(X, y, level, prep.cat_cardinalities, prep.n_num, seed)
     if method == "ctgan":
         if pool is None:
             raise RuntimeError("Для CTGAN не подготовлен пул синтетических дефолтов")
         return ctgan_resample(X, y, level, pool, rng, prep.cat_cardinalities, prep.n_num)
     raise ValueError(method)
-
-
-def _generator_kwargs(params: dict) -> tuple[float, int]:
-    return float(params.get("noise_scale", 0.1)), int(params.get("gmm_components", 3))
 
 
 def _fold_score(
@@ -78,7 +65,6 @@ def _fold_score(
     pool: np.ndarray | None,
     seed: int,
 ) -> float:
-    noise_scale, gmm_components = _generator_kwargs(params)
     Xb, yb = apply_resample(
         method,
         fold["X"],
@@ -86,8 +72,6 @@ def _fold_score(
         level,
         fold["prep"],
         seed,
-        noise_scale,
-        gmm_components,
         pool,
     )
     model = build_model(model_name, params, method, fold["y"], fold["prep"], seed)
@@ -107,7 +91,6 @@ def _oof_scores(
     n_train: int,
 ) -> np.ndarray:
     oof = np.zeros(n_train, dtype=float)
-    noise_scale, gmm_components = _generator_kwargs(params)
     for fold_id, fold in enumerate(folds):
         Xb, yb = apply_resample(
             method,
@@ -116,8 +99,6 @@ def _oof_scores(
             level,
             fold["prep"],
             seed + fold_id,
-            noise_scale,
-            gmm_components,
             pools[fold_id],
         )
         model = build_model(model_name, params, method, fold["y"], fold["prep"], seed)
@@ -142,7 +123,6 @@ def run_experiment(
     RESULTS.mkdir(parents=True, exist_ok=True)
     metrics_path = RESULTS / ("metrics.csv" if tag == "main" else f"{tag}_metrics.csv")
     sweep_path = RESULTS / ("level_sweep.csv" if tag == "main" else f"{tag}_level_sweep.csv")
-    quality_path = RESULTS / ("synth_quality.csv" if tag == "main" else f"{tag}_synth_quality.csv")
     profile_path = RESULTS / ("data_profile.csv" if tag == "main" else f"{tag}_data_profile.csv")
     db_path = RESULTS / ("optuna.db" if tag == "main" else f"{tag}_optuna.db")
     done = _load_done(metrics_path)
@@ -208,17 +188,6 @@ def run_experiment(
             started = time.time()
             ctgan_full = fit_ctgan_pool(X_full, y_train, full_prep, ctgan_epochs, seed + 100)
             log(f"  полный train: пул {len(ctgan_full)} за {time.time() - started:.1f}с")
-            for method in ("smote", "borderline_smote", "adasyn", "noise", "gmm", "ctgan"):
-                if method not in methods or _has_rows(quality_path, dataset_name, method):
-                    continue
-                row = quality_row(method, X_full, y_train, full_prep, ctgan_full, seed)
-                row["dataset"] = dataset_name
-                _append_csv(quality_path, row)
-                log(
-                    f"  качество синтетики {method}: "
-                    f"W={row['wasserstein_num']:.3f}, KS={row['ks_num']:.3f}, "
-                    f"corr={row['corr_frobenius']:.3f}"
-                )
 
         for model_name in models:
             for method in methods:
@@ -261,7 +230,6 @@ def run_experiment(
                     study.optimize(objective, n_trials=trials - finished, show_progress_bar=False)
                 best = study.best_params
                 params = dict(best)
-                noise_scale, gmm_components = _generator_kwargs(params)
 
                 chosen_level = None
                 if method in RESAMPLE_METHODS:
@@ -316,8 +284,6 @@ def run_experiment(
                     chosen_level,
                     full_prep,
                     seed + 1200,
-                    noise_scale,
-                    gmm_components,
                     ctgan_full,
                 )
                 final_model = build_model(model_name, params, method, y_train, full_prep, seed)

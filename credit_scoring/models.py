@@ -29,10 +29,6 @@ def suggest_params(trial, model_name: str, method: str) -> dict:
 
     if method == "class_weight":
         params["weight_multiplier"] = trial.suggest_float("weight_multiplier", 0.5, 3.0)
-    if method == "noise":
-        params["noise_scale"] = trial.suggest_float("noise_scale", 0.05, 0.45)
-    if method == "gmm":
-        params["gmm_components"] = trial.suggest_int("gmm_components", 1, 4)
     return params
 
 
@@ -151,7 +147,7 @@ def build_model(model_name: str, params: dict, method: str, y_for_weight: np.nda
     model_params = {
         key: value
         for key, value in params.items()
-        if key not in {"noise_scale", "gmm_components", "level", "weight_multiplier"}
+        if key not in {"level", "weight_multiplier"}
     }
     balanced = method == "class_weight"
     multiplier = float(params.get("weight_multiplier", 1.0)) if balanced else 1.0

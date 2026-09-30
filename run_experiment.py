@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--giveme-rows",
         type=int,
-        default=8000,
+        default=0,
         help="Стратифицированная подвыборка Give Me Some Credit. 0 — все 150000 строк",
     )
     parser.add_argument("--seed", type=int, default=42)

@@ -11,20 +11,14 @@ METHOD_ORDER = [
     "raw",
     "class_weight",
     "smote",
-    "borderline_smote",
     "adasyn",
-    "noise",
-    "gmm",
     "ctgan",
 ]
 METHOD_LABELS = {
     "raw": "Без баланса",
     "class_weight": "Веса классов",
     "smote": "SMOTE",
-    "borderline_smote": "Borderline-SMOTE",
     "adasyn": "ADASYN",
-    "noise": "Шум",
-    "gmm": "GMM",
     "ctgan": "CTGAN",
 }
 MODEL_LABELS = {"logreg": "LogReg", "xgboost": "XGBoost", "catboost": "CatBoost"}
