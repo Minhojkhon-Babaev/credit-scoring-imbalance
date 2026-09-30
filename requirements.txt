@@ -1,0 +1,11 @@
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+scipy>=1.11
+optuna>=3.6
+xgboost>=2.0
+catboost>=1.2
+imbalanced-learn>=0.12
+ctgan>=0.10
+matplotlib>=3.8
+python-pptx>=1.0
